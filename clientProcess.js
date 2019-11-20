@@ -1,10 +1,10 @@
 //const express = require('express');
 const SocketServer = require('ws').Server;
-
+let dataQueue = [];
 let g_wsObjs = [];
 let g_wsObjPkgs = [];
 process.on('message', (config) => {
-    //console.log(config);
+    console.log(config);
     var PORT = parseInt(config.port);
     if(config.type == 'init') {
 
@@ -28,6 +28,8 @@ process.on('message', (config) => {
         }
     }
     if(config.type == 'data') {
+        enqueReceive(config.data);
+        /*
         let channel = config.data.channel;
         let packet = config.data.packet;
         let data = config.data.data;
@@ -54,6 +56,66 @@ process.on('message', (config) => {
                 }
             }
         }
+        */
     }
-
 });
+
+function send2Broswer() {
+    if(!isReceiveQueueEmpty()){
+        let datas = dequeueReceive();
+        if(datas && g_wsObjs.length > 0){
+            for(let nIndex = 0 ; nIndex < g_wsObjs.length; ++nIndex){
+                if(g_wsObjs[nIndex] !== undefined){
+                    for(let i = 0; i < datas.length; i++){
+                        let pkgInfoObj = {
+                            "channel" : datas[i].channel,
+                            "type" : datas[i].packet.payloadType,
+                            "id" : datas[i].packet.id,
+                            "ts" : datas[i].packet.timestamp,
+                            "m" : datas[i].packet.marker
+                        };
+                        let pkgInfoString = JSON.stringify(pkgInfoObj);
+
+                        g_wsObjs[nIndex].send(pkgInfoString);
+                        //console.log('count :' , g_wsObjPkgs[nIndex]++);
+
+                        g_wsObjs[nIndex].send(datas[i].data, { binary: true });
+                        console.log('count :' , g_wsObjPkgs[nIndex]+=2);
+                        //console.log(data);
+                        //g_wsObjs[nIndex].send('hi');
+                    }
+                }
+            }
+        }
+    }
+}
+
+function isReceiveQueueEmpty() {
+    if (dataQueue.length > 0) {
+        return false;
+    }
+    return true;
+}
+
+function dequeueReceive() {
+    if (dataQueue.length > 0) {
+        if (dataQueue.length < 10) {
+            return dataQueue.splice(0, dataQueue.length);
+        }
+        else {
+            return dataQueue.splice(0, 10);
+        }
+    }else{
+        return null;
+    }
+}
+
+function enqueReceive(data) {
+    console.log("RTP:", "Channel=" + data.channel, "TYPE=" + data.packet.payloadType, "ID=" + data.packet.id, "TS=" + data.packet.timestamp, "M=" + data.packet.marker);
+    dataQueue.push(data);
+}
+
+setInterval(function () {
+    //console.log("send data to Broswer");
+    send2Broswer();
+}, 500);
