@@ -5,7 +5,7 @@
 //
 // Yellowstone is written in TypeScript. This example uses Javascript and
 // the typescript compiled files in the ./dist folder
-
+const EventEmitter = require('events');
 const { RTSPClient2, RecordRawData} = require("./dist");
 const fs = require("fs");
 const childProcess = require('child_process');
@@ -21,6 +21,10 @@ const filename = "bigbuckbunny_camera";
 const username = "admin";
 const password = "admin1234";
 
+//usage: node main_server.js 5000 9000
+let videoBaseDir = './MyVideos';
+const rtsp_arr = [url];
+// rtsp_arr.push('');
 
 var myArgs = process.argv.slice(2);
 
@@ -55,6 +59,50 @@ function initClientProcess(PORT) {
     clientProcess.send({type: "init", port: PORT});
 }
 
+EventEmitter.defaultMaxListeners = 50;
+function isDirExisted(dirname) {
+    return new Promise(function(resolve, reject) {
+        fs.access(dirname, fs.constants.R_OK, (err) => {
+            if (err) {
+                console.log('the directory is not existed:'+dirname);// console.log(err.message);
+                resolve(false);
+            } else {
+                // console.log('exist flag: true');
+                resolve(true);
+            }
+        });
+    });
+}
+function mkDestDir(dirname){
+    return new Promise(function(resolve,reject){
+        fs.mkdir(dirname,{ recursive: true },(err)=>{
+            if (err){
+                throw err;
+            } else {
+                console.log('mkdir success:'+dirname);
+                resolve();
+            }
+        });
+    });
+}
+async function saveRTST2HDD(PORT){
+    let videosTotal = 20;
+    if(!await isDirExisted(videoBaseDir)){
+        let result = await mkDestDir(videoBaseDir);
+    }
+    for(let idx = 0; idx < videosTotal; idx++){
+        let destDir = videoBaseDir+'/'+idx;
+        if(!await isDirExisted(destDir)){
+            let result = await mkDestDir(destDir);
+        }
+        //ffmpeg  -i rtsp://admin:admin1234@172.18.192.141/live1.sdp -vcodec copy -acodec copy -f ssegment -segment_time 60 -y MyVideos/0/FFmpeg%05d.mp4
+        let cmd=['  -i ' +rtsp_arr[idx % (rtsp_arr.length)], ' -vcodec copy -acodec copy -f ssegment -segment_time 60',' -y '+destDir+'/FFmpeg%05d.mp4'];
+        let saveproc = childProcess.spawn('ffmpeg',cmd,{shell: true});
+        console.log('start ffmpeg '+cmd.join(''));
+        saveproc.stdout.pipe(process.stdout);
+        saveproc.stderr.pipe(process.stderr);
+    }
+}
 // const server = express().listen(PORT, () => console.log(`Listening on ${PORT}`));
 // const ws = new SocketServer({ server });
 // let g_wsObjs = [];
@@ -85,22 +133,22 @@ const client = new RTSPClient2(username, password, udpPort);
 // "keepAlive" option is set to true by default
 // "connection" option is set to "udp" by default.
 client.connect(url, { connection: "udp" })
-.then((detailsArray) => {
-    console.log("Connected");
+    .then((detailsArray) => {
+        console.log("Connected");
 
-    for (let x = 0; x < detailsArray.length; x++) {
-        let details = detailsArray[x];
-        console.log(details);
-        console.log(`Stream ${x}. Codec is`, details.codec);
-    }
+        for (let x = 0; x < detailsArray.length; x++) {
+            let details = detailsArray[x];
+            console.log(details);
+            console.log(`Stream ${x}. Codec is`, details.codec);
+        }
 
-    //const rawFile = fs.createWriteStream('rawdata.data');
-    //const raw = new RecordRawData(client, rawFile, null);
+        //const rawFile = fs.createWriteStream('rawdata.data');
+        //const raw = new RecordRawData(client, rawFile, null);
 
-    // Step 5: Start streaming!
-    client.play();
-})
-.catch(e => console.log(e));
+        // Step 5: Start streaming!
+        client.play();
+    })
+    .catch(e => console.log(e));
 
 // Step 3: create process for browser.
 initClientProcess(PORT);
@@ -147,3 +195,5 @@ client.on("controlData", (channel, rtcpPacket) => {
 client.on("log", (data, prefix) => {
     console.log(prefix + ": " + data);
 });
+
+saveRTST2HDD(PORT);
