@@ -12,8 +12,7 @@
   "typings": "dist/index.d.ts",
   "dependencies": {
     "express": "^4.17.1",
-    "sdp-transform": "^2.7.0",
-    "ws": "^7.2.0"
+    "sdp-transform": "^2.7.0"
   },
   "scripts": {
     "build": "tsc --project ./tsconfig.json",
