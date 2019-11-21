@@ -10,13 +10,22 @@ const { RTSPClient2, RecordRawData} = require("./dist");
 const fs = require("fs");
 const childProcess = require('child_process');
 const path = require('path');
+let PORT = undefined;
+let url = undefined;
 // User-specified details here.
-//const url = "rtsp://172.17.134.17:8554/stream";
 //const filename = "bigbuckbunny";
 //const username = "";
 //const password = "";
+var myArgs = process.argv.slice(2);
 
-const url = "rtsp://admin:admin1234@172.18.192.141/live1.sdp";
+if(myArgs.length > 0) {
+    if(myArgs.length >= 1)
+        url = myArgs[0];    //rtsp server url
+    if(myArgs.length >= 2)
+        PORT = myArgs[1];   //websocket port: 11
+}
+
+//const url = "rtsp://172.18.192.178:7447/HgmhHppgsr8hftk1";
 const filename = "bigbuckbunny_camera";
 const username = "admin";
 const password = "admin1234";
@@ -26,28 +35,12 @@ let videoBaseDir = './MyVideos';
 const rtsp_arr = [url];
 // rtsp_arr.push('');
 
-var myArgs = process.argv.slice(2);
 
-const express = require('express');
-const SocketServer = require('ws').Server;
-let PORT = undefined;
-let udpPort = undefined;
 
-if(myArgs.length > 0) {
-    if(myArgs.length >= 1)
-        udpPort = myArgs[0];    //RTP port:  5000
-    if(myArgs.length >= 2)
-        PORT = myArgs[1];       //websocket port: 11
-}
-
-if(udpPort === undefined) {
-    console.log('Please input the parameters.\n e.g.\n node media_server.js <rtp port> <webSocket Port> or \n node media_server.js <rtp port>');
-    return;
-}
 var clientProcess;
 function initClientProcess(PORT) {
     console.log("Init stats child process");
-    clientProcess = childProcess.fork(path.join(__dirname, './clientProcess.js'));
+    clientProcess = childProcess.fork(path.join(__dirname, 'clientProcess.js'));
     clientProcess.on('error', function (err) {
         console.error("Client child process closed: " + err);
         clientProcess = null;
@@ -126,7 +119,7 @@ async function saveRTST2HDD(PORT){
 // }
 
 // Step 1: Create an RTSPClient instance
-const client = new RTSPClient2(username, password, udpPort);
+const client = new RTSPClient2(username, password, 554);
 
 // Step 2: Connect to a specified URL using the client instance.
 //

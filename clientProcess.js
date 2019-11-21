@@ -1,5 +1,11 @@
-//const express = require('express');
-const SocketServer = require('ws').Server;
+const fs = require("fs");
+const https = require('https');
+const WebSocket = require('ws');
+const server = https.createServer({
+  cert: fs.readFileSync('/userdata/config/cwmserver-cert.pem'),
+  key: fs.readFileSync('/userdata/config/cwmserver-key.pem')
+});
+
 let dataQueue = [];
 let g_wsObjs = [];
 let g_wsObjPkgs = [];
@@ -10,7 +16,9 @@ process.on('message', (config) => {
 
         console.log('Client process started');
         //const server = express().listen(PORT, () => console.log(`Listening on ${PORT}`));
-        const ws = new SocketServer({port: PORT});
+        const ws = new WebSocket.Server({ server });
+        server.listen(PORT)
+
         if(PORT !== undefined){
             ws.on('connection', wsObj => {
                 console.log('Client connected');
