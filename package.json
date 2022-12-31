@@ -23,7 +23,7 @@
     "@types/jest": "^23.3.13",
     "@types/node": "^10.12.18",
     "@types/sdp-transform": "^2.4.0",
-    "jest": "^18.1.0",
+    "jest": "^29.3.1",
     "typedoc": "^0.14.2",
     "typedoc-plugin-markdown": "^1.1.25",
     "typescript": "^3.2.4"
